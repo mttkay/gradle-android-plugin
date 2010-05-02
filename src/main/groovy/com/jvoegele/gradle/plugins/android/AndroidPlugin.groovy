@@ -49,6 +49,7 @@ class AndroidPlugin implements Plugin<Project> {
     androidSetup()
     defineTasks()
     configureCompile()
+	configureEclipseIntegration()
   }
 
   private void androidSetup() {
@@ -248,6 +249,25 @@ class AndroidPlugin implements Plugin<Project> {
           nativefolder(path: androidConvention.nativeLibsDir)
           //jarfolder(path: androidConvention.nativeLibsDir)
         }
+  }
+
+  private void configureEclipseIntegration() {
+    project.gradle.taskGraph.whenReady { taskGraph ->
+      if (taskGraph.hasTask(':eclipse')) {
+        def eclipseProject = project.tasks['eclipseProject']
+        if (eclipseProject) {
+          eclipseProject.natureNames += 'com.android.ide.eclipse.adt.AndroidNature'
+          def buildCommands = ['com.android.ide.eclipse.adt.ResourceManagerBuilder',
+                               'com.android.ide.eclipse.adt.PreCompilerBuilder']
+          buildCommands.addAll(eclipseProject.buildCommandNames)
+          buildCommands += 'com.android.ide.eclipse.adt.ApkBuilder'
+          eclipseProject.buildCommandNames = new LinkedHashSet(buildCommands)
+        }
+
+        def eclipseClasspath = project.tasks.eclipseCp
+        eclipseClasspath.srcDirs += androidConvention.genDir
+      }
+    }
   }
 
   private void zipAlign(ant, inPackage, outPackage) {
